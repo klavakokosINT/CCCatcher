@@ -2,154 +2,167 @@ if not game:IsLoaded() then game.Loaded:Wait() end
 
 local localPlayer = game:GetService("Players").LocalPlayer
 local autoCollect = false
+local clientEffects = workspace:FindFirstChild("ClientEffects") or workspace:FindFirstChild("Particles")
 
-local function findPriorityCFrame()
-	local char = localPlayer.Character
-	local root = char and char:FindFirstChild("HumanoidRootPart")
-	if not root then return nil end
-
-	local effects = workspace:FindFirstChild("ClientEffects") or workspace:FindFirstChild("Particles")
-	if not effects then return nil end
-
-	local currentY = root.Position.Y
-	local bestCombo, bestCoco = nil, nil
-	local distCombo, distCoco = math.huge, math.huge
-
-	for _, obj in ipairs(effects:GetChildren()) do
-		if obj:IsA("BasePart") then
-			local name = obj.Name
-			local dist = (obj.Position - root.Position).Magnitude
-
-			if name:find("Combo") or name:find("CocoCombo") then
-				if dist < distCombo then
-					distCombo = dist
-					bestCombo = obj.Position
-				end
-			elseif name:find("Coco") or name == "Circle" then
-				if dist < distCoco then
-					distCoco = dist
-					bestCoco = obj.Position
-				end
-			end
+local function teleportToCombo(obj)
+	if not autoCollect then return end
+	if obj:IsA("BasePart") and obj.Name:find("Combo") then
+		local root = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
+		if root then
+			root.CFrame = CFrame.new(obj.Position.X, root.Position.Y, obj.Position.Z)
 		end
 	end
-
-	local pos = bestCombo or bestCoco
-	return pos and CFrame.new(pos.X, currentY, pos.Z)
 end
 
 -- UI
 local targetParent = (typeof(gethui) == "function" and gethui()) or game:GetService("CoreGui")
 
 local ScreenGui = Instance.new("ScreenGui", targetParent)
-ScreenGui.Name = "KLAVAKOKOS_UI"
+ScreenGui.Name = "KLAVAKOKOS_V16"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.DisplayOrder = 999
 
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 220, 0, 160)
-MainFrame.Position = UDim2.new(0.5, -110, 0.5, -80)
-MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+MainFrame.Size = UDim2.new(0, 236, 0, 164)
+MainFrame.Position = UDim2.new(0.5, -118, 0.4, -66)
+MainFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(70, 70, 70)
 
-local stroke = Instance.new("UIStroke", MainFrame)
-stroke.Color = Color3.fromRGB(255, 255, 255)
-stroke.Thickness = 2
-
-local corner = Instance.new("UICorner", MainFrame)
-corner.CornerRadius = UDim.new(0, 6)
+local function makeFrame(parent, size, pos, color)
+	local f = Instance.new("Frame", parent)
+	f.Size = size
+	f.Position = pos
+	f.BackgroundColor3 = color
+	f.BorderSizePixel = 0
+	return f
+end
 
 -- Заголовок
-local TitleBar = Instance.new("Frame", MainFrame)
-TitleBar.Size = UDim2.new(1, 0, 0, 45)
-TitleBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-TitleBar.BorderSizePixel = 0
+local TitleBar = makeFrame(MainFrame, UDim2.new(1,0,0,38), UDim2.new(0,0,0,0), Color3.fromRGB(38,38,38))
+Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 10)
+makeFrame(TitleBar, UDim2.new(1,0,0.5,0), UDim2.new(0,0,0.5,0), Color3.fromRGB(38,38,38))
 
-local titleCorner = Instance.new("UICorner", TitleBar)
-titleCorner.CornerRadius = UDim.new(0, 6)
+-- Разделитель
+makeFrame(MainFrame, UDim2.new(1,0,0,1), UDim2.new(0,0,0,38), Color3.fromRGB(55,55,55))
 
-local titleFix = Instance.new("Frame", TitleBar)
-titleFix.Size = UDim2.new(1, 0, 0.5, 0)
-titleFix.Position = UDim2.new(0, 0, 0.5, 0)
-titleFix.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-titleFix.BorderSizePixel = 0
+-- macOS кнопки
+local function makeCircleBtn(parent, xPos, color)
+	local btn = Instance.new("TextButton", parent)
+	btn.Size = UDim2.new(0, 13, 0, 13)
+	btn.Position = UDim2.new(0, xPos, 0.5, -6)
+	btn.BackgroundColor3 = color
+	btn.BorderSizePixel = 0
+	btn.Text = ""
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(1, 0)
+	return btn
+end
 
-local Title = Instance.new("TextLabel", TitleBar)
-Title.Size = UDim2.new(1, -40, 1, 0)
-Title.Text = "KLAVAKOKOS"
-Title.TextColor3 = Color3.fromRGB(0, 0, 0)
-Title.BackgroundTransparency = 1
-Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 20
+local btnClose    = makeCircleBtn(TitleBar, 12,  Color3.fromRGB(255, 95, 87))
+local btnMinimize = makeCircleBtn(TitleBar, 32,  Color3.fromRGB(255, 189, 46))
+makeCircleBtn(TitleBar, 52, Color3.fromRGB(40, 205, 65))
 
--- Кнопка закрытия
-local CloseBtn = Instance.new("TextButton", TitleBar)
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -35, 0.5, -15)
-CloseBtn.Text = "✕"
-CloseBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseBtn.Font = Enum.Font.SourceSansBold
-CloseBtn.TextSize = 16
-CloseBtn.BorderSizePixel = 0
+local titleLabel = Instance.new("TextLabel", TitleBar)
+titleLabel.Size = UDim2.new(1, 0, 1, 0)
+titleLabel.Text = "KLAVAKOKOS"
+titleLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Font = Enum.Font.SourceSansBold
+titleLabel.TextSize = 13
+titleLabel.TextXAlignment = Enum.TextXAlignment.Center
 
-local closeBtnCorner = Instance.new("UICorner", CloseBtn)
-closeBtnCorner.CornerRadius = UDim.new(0, 4)
+-- Контент
+local ContentFrame = makeFrame(MainFrame, UDim2.new(1,0,1,-39), UDim2.new(0,0,0,39), Color3.fromRGB(28,28,28))
+ContentFrame.BackgroundTransparency = 1
 
-CloseBtn.MouseButton1Click:Connect(function()
-	autoCollect = false
-	ScreenGui:Destroy()
-end)
+local function makeLabel(parent, size, pos, text, color, fontSize, font, align)
+	local l = Instance.new("TextLabel", parent)
+	l.Size = size
+	l.Position = pos
+	l.Text = text
+	l.TextColor3 = color
+	l.BackgroundTransparency = 1
+	l.Font = font or Enum.Font.SourceSans
+	l.TextSize = fontSize or 12
+	l.TextXAlignment = align or Enum.TextXAlignment.Left
+	return l
+end
 
--- Статус
-local StatusLabel = Instance.new("TextLabel", MainFrame)
-StatusLabel.Size = UDim2.new(0.8, 0, 0, 20)
-StatusLabel.Position = UDim2.new(0.1, 0, 0, 55)
-StatusLabel.Text = "STATUS: IDLE"
-StatusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
-StatusLabel.BackgroundTransparency = 1
-StatusLabel.Font = Enum.Font.SourceSans
-StatusLabel.TextSize = 14
+local StatusLabel = makeLabel(ContentFrame,
+	UDim2.new(1,-24,0,20), UDim2.new(0,12,0,12),
+	"● INACTIVE", Color3.fromRGB(120,120,120),
+	11, Enum.Font.SourceSansBold)
 
--- Кнопка Toggle
-local ToggleBtn = Instance.new("TextButton", MainFrame)
-ToggleBtn.Size = UDim2.new(0.8, 0, 0, 40)
-ToggleBtn.Position = UDim2.new(0.1, 0, 0, 85)
-ToggleBtn.Text = "AUTO COMBO: OFF"
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-ToggleBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-ToggleBtn.Font = Enum.Font.SourceSansBold
-ToggleBtn.TextSize = 15
+makeLabel(ContentFrame,
+	UDim2.new(0,60,0,20), UDim2.new(1,-72,0,12),
+	"v16", Color3.fromRGB(75,75,75),
+	11, Enum.Font.SourceSans, Enum.TextXAlignment.Right)
+
+-- Кнопка
+local ToggleBtn = Instance.new("TextButton", ContentFrame)
+ToggleBtn.Size = UDim2.new(1,-24,0,46)
+ToggleBtn.Position = UDim2.new(0,12,0,38)
+ToggleBtn.Text = "COMBO LOCK"
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(45,45,45)
+ToggleBtn.TextColor3 = Color3.fromRGB(180,180,180)
 ToggleBtn.BorderSizePixel = 0
+ToggleBtn.Font = Enum.Font.SourceSansBold
+ToggleBtn.TextSize = 14
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 8)
+local BtnStroke = Instance.new("UIStroke", ToggleBtn)
+BtnStroke.Color = Color3.fromRGB(65,65,65)
+BtnStroke.Thickness = 1
 
-local btnCorner = Instance.new("UICorner", ToggleBtn)
-btnCorner.CornerRadius = UDim.new(0, 6)
+makeLabel(ContentFrame,
+	UDim2.new(1,-24,0,18), UDim2.new(0,12,0,90),
+	"Teleports instantly on combo spawn",
+	Color3.fromRGB(65,65,65), 11, Enum.Font.SourceSans,
+	Enum.TextXAlignment.Center)
 
+-- Логика кнопки
 ToggleBtn.MouseButton1Click:Connect(function()
 	autoCollect = not autoCollect
 	if autoCollect then
-		ToggleBtn.Text = "AUTO COMBO: ON"
-		ToggleBtn.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
-		StatusLabel.Text = "STATUS: ACTIVE"
-		StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+		ToggleBtn.BackgroundColor3 = Color3.fromRGB(255,255,255)
+		ToggleBtn.TextColor3 = Color3.fromRGB(0,0,0)
+		BtnStroke.Color = Color3.fromRGB(200,200,200)
+		StatusLabel.Text = "● ACTIVE"
+		StatusLabel.TextColor3 = Color3.fromRGB(40,205,65)
+		if clientEffects then
+			for _, obj in ipairs(clientEffects:GetChildren()) do
+				teleportToCombo(obj)
+			end
+		end
 	else
-		ToggleBtn.Text = "AUTO COMBO: OFF"
-		ToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-		StatusLabel.Text = "STATUS: IDLE"
-		StatusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+		ToggleBtn.BackgroundColor3 = Color3.fromRGB(45,45,45)
+		ToggleBtn.TextColor3 = Color3.fromRGB(180,180,180)
+		BtnStroke.Color = Color3.fromRGB(65,65,65)
+		StatusLabel.Text = "● INACTIVE"
+		StatusLabel.TextColor3 = Color3.fromRGB(120,120,120)
 	end
 end)
 
--- Движок
-task.spawn(function()
-	while true do
-		task.wait(0.02)
-		if autoCollect then
-			local root = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
-			if root then
-				local cf = findPriorityCFrame()
-				if cf then root.CFrame = cf end
-			end
-		end
-	end
+-- Свернуть
+local minimized = false
+btnMinimize.MouseButton1Click:Connect(function()
+	minimized = not minimized
+	ContentFrame.Visible = not minimized
+	MainFrame.Size = minimized
+		and UDim2.new(0,236,0,38)
+		or  UDim2.new(0,236,0,164)
+end)
+
+-- Закрыть
+local childConn
+if clientEffects then
+	childConn = clientEffects.ChildAdded:Connect(teleportToCombo)
+end
+
+btnClose.MouseButton1Click:Connect(function()
+	autoCollect = false
+	if childConn then childConn:Disconnect() end
+	ScreenGui:Destroy()
 end)
