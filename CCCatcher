@@ -116,7 +116,7 @@ makeLabel(ContentFrame,
 	Color3.fromRGB(65,65,65), 11, Enum.Font.SourceSans,
 	Enum.TextXAlignment.Center)
 
--- Ручной драг
+-- Ручной драг1
 local dragging, dragStart, startPos
 TitleBar.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
