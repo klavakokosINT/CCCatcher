@@ -3,17 +3,35 @@ if not game:IsLoaded() then game.Loaded:Wait() end
 local localPlayer = game:GetService("Players").LocalPlayer
 local UIS = game:GetService("UserInputService")
 local autoCollect = false
-local clientEffects = workspace:FindFirstChild("ClientEffects") or workspace:FindFirstChild("Particles")
+local childConn
 
-local function teleportToCombo(obj)
+local function teleportToMarker(obj)
 	if not autoCollect then return end
-	if obj:IsA("BasePart") and obj.Name:find("Combo") then
+	if obj.Name == "WarningDisk" and obj:IsA("BasePart") then
 		local root = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
 		if root then
 			root.CFrame = CFrame.new(obj.Position.X, root.Position.Y, obj.Position.Z)
 		end
 	end
 end
+
+local function connectEffects()
+	if childConn then childConn:Disconnect() end
+	local effects = workspace:FindFirstChild("Particles") or workspace:FindFirstChild("ClientEffects")
+	if effects then
+		for _, obj in ipairs(effects:GetChildren()) do
+			teleportToMarker(obj)
+		end
+		childConn = effects.ChildAdded:Connect(teleportToMarker)
+	end
+end
+
+workspace.ChildAdded:Connect(function(child)
+	if child.Name == "Particles" or child.Name == "ClientEffects" then
+		task.wait()
+		connectEffects()
+	end
+end)
 
 -- UI
 local targetParent = (typeof(gethui) == "function" and gethui()) or game:GetService("CoreGui")
@@ -112,11 +130,11 @@ BtnStroke.Thickness = 1
 
 makeLabel(ContentFrame,
 	UDim2.new(1,-24,0,18), UDim2.new(0,12,0,90),
-	"Teleports instantly on combo spawn",
+	"Teleports on WarningDisk marker",
 	Color3.fromRGB(65,65,65), 11, Enum.Font.SourceSans,
 	Enum.TextXAlignment.Center)
 
--- Ручной драг1
+-- Ручной драг
 local dragging, dragStart, startPos
 TitleBar.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -140,7 +158,6 @@ UIS.InputChanged:Connect(function(input)
 	end
 end)
 
--- Логика
 ToggleBtn.MouseButton1Click:Connect(function()
 	autoCollect = not autoCollect
 	if autoCollect then
@@ -149,11 +166,7 @@ ToggleBtn.MouseButton1Click:Connect(function()
 		BtnStroke.Color = Color3.fromRGB(200,200,200)
 		StatusLabel.Text = "● ACTIVE"
 		StatusLabel.TextColor3 = Color3.fromRGB(40,205,65)
-		if clientEffects then
-			for _, obj in ipairs(clientEffects:GetChildren()) do
-				teleportToCombo(obj)
-			end
-		end
+		connectEffects()
 	else
 		ToggleBtn.BackgroundColor3 = Color3.fromRGB(45,45,45)
 		ToggleBtn.TextColor3 = Color3.fromRGB(180,180,180)
@@ -171,11 +184,6 @@ btnMinimize.MouseButton1Click:Connect(function()
 		and UDim2.new(0,236,0,38)
 		or  UDim2.new(0,236,0,164)
 end)
-
-local childConn
-if clientEffects then
-	childConn = clientEffects.ChildAdded:Connect(teleportToCombo)
-end
 
 btnClose.MouseButton1Click:Connect(function()
 	autoCollect = false
