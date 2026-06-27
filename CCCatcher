@@ -1,6 +1,7 @@
 if not game:IsLoaded() then game.Loaded:Wait() end
 
 local localPlayer = game:GetService("Players").LocalPlayer
+local UIS = game:GetService("UserInputService")
 local autoCollect = false
 local clientEffects = workspace:FindFirstChild("ClientEffects") or workspace:FindFirstChild("Particles")
 
@@ -28,7 +29,6 @@ MainFrame.Position = UDim2.new(0.5, -118, 0.4, -66)
 MainFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
-MainFrame.Draggable = true
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
 Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(70, 70, 70)
 
@@ -41,15 +41,11 @@ local function makeFrame(parent, size, pos, color)
 	return f
 end
 
--- Заголовок
 local TitleBar = makeFrame(MainFrame, UDim2.new(1,0,0,38), UDim2.new(0,0,0,0), Color3.fromRGB(38,38,38))
 Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 10)
 makeFrame(TitleBar, UDim2.new(1,0,0.5,0), UDim2.new(0,0,0.5,0), Color3.fromRGB(38,38,38))
-
--- Разделитель
 makeFrame(MainFrame, UDim2.new(1,0,0,1), UDim2.new(0,0,0,38), Color3.fromRGB(55,55,55))
 
--- macOS кнопки
 local function makeCircleBtn(parent, xPos, color)
 	local btn = Instance.new("TextButton", parent)
 	btn.Size = UDim2.new(0, 13, 0, 13)
@@ -61,8 +57,8 @@ local function makeCircleBtn(parent, xPos, color)
 	return btn
 end
 
-local btnClose    = makeCircleBtn(TitleBar, 12,  Color3.fromRGB(255, 95, 87))
-local btnMinimize = makeCircleBtn(TitleBar, 32,  Color3.fromRGB(255, 189, 46))
+local btnClose    = makeCircleBtn(TitleBar, 12, Color3.fromRGB(255, 95, 87))
+local btnMinimize = makeCircleBtn(TitleBar, 32, Color3.fromRGB(255, 189, 46))
 makeCircleBtn(TitleBar, 52, Color3.fromRGB(40, 205, 65))
 
 local titleLabel = Instance.new("TextLabel", TitleBar)
@@ -74,7 +70,6 @@ titleLabel.Font = Enum.Font.SourceSansBold
 titleLabel.TextSize = 13
 titleLabel.TextXAlignment = Enum.TextXAlignment.Center
 
--- Контент
 local ContentFrame = makeFrame(MainFrame, UDim2.new(1,0,1,-39), UDim2.new(0,0,0,39), Color3.fromRGB(28,28,28))
 ContentFrame.BackgroundTransparency = 1
 
@@ -101,7 +96,6 @@ makeLabel(ContentFrame,
 	"v16", Color3.fromRGB(75,75,75),
 	11, Enum.Font.SourceSans, Enum.TextXAlignment.Right)
 
--- Кнопка
 local ToggleBtn = Instance.new("TextButton", ContentFrame)
 ToggleBtn.Size = UDim2.new(1,-24,0,46)
 ToggleBtn.Position = UDim2.new(0,12,0,38)
@@ -122,7 +116,31 @@ makeLabel(ContentFrame,
 	Color3.fromRGB(65,65,65), 11, Enum.Font.SourceSans,
 	Enum.TextXAlignment.Center)
 
--- Логика кнопки
+-- Ручной драг
+local dragging, dragStart, startPos
+TitleBar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = MainFrame.Position
+	end
+end)
+TitleBar.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+	end
+end)
+UIS.InputChanged:Connect(function(input)
+	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local delta = input.Position - dragStart
+		MainFrame.Position = UDim2.new(
+			startPos.X.Scale, startPos.X.Offset + delta.X,
+			startPos.Y.Scale, startPos.Y.Offset + delta.Y
+		)
+	end
+end)
+
+-- Логика
 ToggleBtn.MouseButton1Click:Connect(function()
 	autoCollect = not autoCollect
 	if autoCollect then
@@ -145,7 +163,6 @@ ToggleBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
--- Свернуть
 local minimized = false
 btnMinimize.MouseButton1Click:Connect(function()
 	minimized = not minimized
@@ -155,7 +172,6 @@ btnMinimize.MouseButton1Click:Connect(function()
 		or  UDim2.new(0,236,0,164)
 end)
 
--- Закрыть
 local childConn
 if clientEffects then
 	childConn = clientEffects.ChildAdded:Connect(teleportToCombo)
