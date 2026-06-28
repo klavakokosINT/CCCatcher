@@ -33,6 +33,21 @@ workspace.ChildAdded:Connect(function(child)
 	end
 end)
 
+local optimized = false
+local function optimizeGame()
+	local remove = {"ParticleEmitter", "Trail", "Beam", "Decal", "Texture", "BillboardGui", "SurfaceGui"}
+	for _, className in ipairs(remove) do
+		for _, obj in ipairs(workspace:GetDescendants()) do
+			if obj.ClassName == className then
+				pcall(function() obj:Destroy() end)
+			end
+		end
+	end
+	-- Отключаем тени
+	game:GetService("Lighting").GlobalShadows = false
+	game:GetService("Lighting").FogEnd = 1000000
+end
+
 -- UI
 local targetParent = (typeof(gethui) == "function" and gethui()) or game:GetService("CoreGui")
 
@@ -42,8 +57,8 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.DisplayOrder = 999
 
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 236, 0, 164)
-MainFrame.Position = UDim2.new(0.5, -118, 0.4, -66)
+MainFrame.Size = UDim2.new(0, 236, 0, 210)
+MainFrame.Position = UDim2.new(0.5, -118, 0.4, -105)
 MainFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -114,8 +129,9 @@ makeLabel(ContentFrame,
 	"v16", Color3.fromRGB(75,75,75),
 	11, Enum.Font.SourceSans, Enum.TextXAlignment.Right)
 
+-- Кнопка COMBO LOCK
 local ToggleBtn = Instance.new("TextButton", ContentFrame)
-ToggleBtn.Size = UDim2.new(1,-24,0,46)
+ToggleBtn.Size = UDim2.new(1,-24,0,42)
 ToggleBtn.Position = UDim2.new(0,12,0,38)
 ToggleBtn.Text = "COMBO LOCK"
 ToggleBtn.BackgroundColor3 = Color3.fromRGB(45,45,45)
@@ -128,10 +144,28 @@ local BtnStroke = Instance.new("UIStroke", ToggleBtn)
 BtnStroke.Color = Color3.fromRGB(65,65,65)
 BtnStroke.Thickness = 1
 
+-- Разделитель
+makeFrame(ContentFrame, UDim2.new(1,-24,0,1), UDim2.new(0,12,0,90), Color3.fromRGB(55,55,55))
+
+-- Кнопка OPTIMIZE
+local OptBtn = Instance.new("TextButton", ContentFrame)
+OptBtn.Size = UDim2.new(1,-24,0,42)
+OptBtn.Position = UDim2.new(0,12,0,98)
+OptBtn.Text = "OPTIMIZE FPS"
+OptBtn.BackgroundColor3 = Color3.fromRGB(45,45,45)
+OptBtn.TextColor3 = Color3.fromRGB(180,180,180)
+OptBtn.BorderSizePixel = 0
+OptBtn.Font = Enum.Font.SourceSansBold
+OptBtn.TextSize = 14
+Instance.new("UICorner", OptBtn).CornerRadius = UDim.new(0, 8)
+local OptStroke = Instance.new("UIStroke", OptBtn)
+OptStroke.Color = Color3.fromRGB(65,65,65)
+OptStroke.Thickness = 1
+
 makeLabel(ContentFrame,
-	UDim2.new(1,-24,0,18), UDim2.new(0,12,0,90),
-	"Teleports on WarningDisk marker",
-	Color3.fromRGB(65,65,65), 11, Enum.Font.SourceSans,
+	UDim2.new(1,-24,0,16), UDim2.new(0,12,0,146),
+	"removes particles, decals, textures",
+	Color3.fromRGB(60,60,60), 11, Enum.Font.SourceSans,
 	Enum.TextXAlignment.Center)
 
 -- Ручной драг
@@ -158,6 +192,7 @@ UIS.InputChanged:Connect(function(input)
 	end
 end)
 
+-- Логика
 ToggleBtn.MouseButton1Click:Connect(function()
 	autoCollect = not autoCollect
 	if autoCollect then
@@ -176,13 +211,23 @@ ToggleBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
+OptBtn.MouseButton1Click:Connect(function()
+	if optimized then return end
+	optimized = true
+	OptBtn.Text = "OPTIMIZED ✓"
+	OptBtn.BackgroundColor3 = Color3.fromRGB(255,255,255)
+	OptBtn.TextColor3 = Color3.fromRGB(0,0,0)
+	OptStroke.Color = Color3.fromRGB(200,200,200)
+	task.spawn(optimizeGame)
+end)
+
 local minimized = false
 btnMinimize.MouseButton1Click:Connect(function()
 	minimized = not minimized
 	ContentFrame.Visible = not minimized
 	MainFrame.Size = minimized
 		and UDim2.new(0,236,0,38)
-		or  UDim2.new(0,236,0,164)
+		or  UDim2.new(0,236,0,210)
 end)
 
 btnClose.MouseButton1Click:Connect(function()
